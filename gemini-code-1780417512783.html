@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Typing Game</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: #f4f4f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 50px;
+            margin-bottom: 50px;
+        }
+
+        .game-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            width: 80%;
+            max-width: 700px; 
+            animation: slideDown 0.6s ease-out;
+        }
+
+        #stats-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .time-warning {
+            color: #d9534f !important;
+            animation: pulse 1s infinite;
+        }
+
+        #text-display {
+            font-size: 22px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            color: #555; 
+            min-height: 70px; 
+        }
+
+        #text-input {
+            width: 100%;
+            height: 100px;
+            font-size: 20px;
+            padding: 15px;
+            box-sizing: border-box;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            resize: none; 
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        #text-input:focus {
+            outline: none;
+            border-color: #4da6ff;
+            box-shadow: 0 0 10px rgba(77, 166, 255, 0.3);
+        }
+
+        #text-input:disabled {
+            background-color: #f0f0f0;
+            cursor: not-allowed;
+        }
+
+        .correct { color: #28a745; font-weight: 600; }
+        .incorrect { color: #dc3545; background-color: #f8d7da; border-radius: 3px; }
+
+        /* REGOLE CONDIVISE PER ENTRAMBI I POPUP (Intro e Fine Gioco) */
+        #popup-overlay, #intro-overlay {
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); 
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; 
+            backdrop-filter: blur(4px); /* Aggiunge un effetto sfocato allo sfondo! */
+        }
+
+        #popup-overlay {
+            display: none; /* Quello di fine gioco parte nascosto */
+        }
+
+        #intro-overlay {
+            display: flex; /* Quello iniziale parte visibile! */
+        }
+
+        #popup-content, #intro-content {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+            max-width: 500px;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #popup-content h2, #intro-content h2 { margin-top: 0; color: #333; font-weight: 700; font-size: 28px; }
+        #popup-content p, #intro-content p { font-size: 18px; margin: 15px 0; line-height: 1.5; }
+        #intro-content .highlight { color: #4da6ff; font-weight: 700; } /* Colore azzurro per dare enfasi */
+        
+        button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            font-size: 18px;
+            font-weight: 600;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        
+        button:hover { 
+            background-color: #45a049; 
+            transform: scale(1.05);
+        }
+
+        #start-btn {
+            background-color: #4da6ff; /* Bottone blu per l'inizio */
+        }
+
+        #start-btn:hover {
+            background-color: #3388dd;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="intro-overlay">
+        <div id="intro-content">
+            <h2>⚡ Test Your Reflexes! ⚡</h2>
+            <p>Welcome to the <strong>Typing Speed Test</strong>.</p>
+            <p>Your goal is simple but challenging: type the words that appear on screen as quickly and accurately as possible.</p>
+            <p>You have exactly <span class="highlight">60 seconds</span>. When the countdown ends, we will reveal your <span class="highlight">Final Accuracy</span>.</p>
+            <p><em>Warm up your fingers... let the challenge begin!</em></p>
+            <button id="start-btn" onclick="startGameFromIntro()">🚀 Start Playing!</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <h1>⌨️ Typing Speed Test 🚀</h1>
+        
+        <div id="stats-bar">
+            <span id="timer-box">⏱️ Time Left: <span id="timer">60</span>s</span>
+        </div>
+        
+        <div id="text-display"></div>
+        <textarea id="text-input" placeholder="Start typing... Press Enter ↵ to load new phrases!" disabled></textarea>
+    </div>
+
+    <div id="popup-overlay">
+        <div id="popup-content">
+            <h2>🎉 Time's Up! 🏆</h2>
+            <p>Your Accuracy: <strong id="final-accuracy">100</strong>% 🎯</p>
+            <button onclick="startNewGame()">🔄 Try Again</button>
+        </div>
+    </div>
+
+    <script>
+        const displayElement = document.getElementById('text-display');
+        const inputElement = document.getElementById('text-input');
+        const timerElement = document.getElementById('timer');
+        const timerBox = document.getElementById('timer-box'); 
+        const popupOverlay = document.getElementById('popup-overlay');
+        const introOverlay = document.getElementById('intro-overlay'); 
+        const finalAccuracyElement = document.getElementById('final-accuracy');
+
+        let timeLeft = 60;
+        let timerInterval = null; 
+        let gameStarted = false;
+        
+        let totalCorrectLetters = 0;
+        let totalIncorrectLetters = 0;
+
+        // Si attiva quando premi il bottone "Start Playing!"
+        function startGameFromIntro() {
+            introOverlay.style.display = 'none'; // Nasconde la schermata di benvenuto
+            startNewGame(); // Fa partire le regole di gioco (scarica le frasi e sblocca la tastiera)
+        }
+
+        async function loadNewPhrases() {
+            inputElement.disabled = true;
+            displayElement.innerHTML = '<span style="color: #888;">Fetching new phrases from the Internet... ⏳</span>';
+
+            try {
+                const [response1, response2] = await Promise.all([
+                    fetch('https://dummyjson.com/quotes/random'),
+                    fetch('https://dummyjson.com/quotes/random')
+                ]);
+
+                const data1 = await response1.json();
+                const data2 = await response2.json();
+                const combinedText = data1.quote + " " + data2.quote;
+
+                displayElement.innerHTML = '';
+                inputElement.value = '';
+
+                displayElement.style.animation = 'none';
+                void displayElement.offsetWidth; 
+                displayElement.style.animation = 'fadeIn 0.5s ease-out';
+
+                combinedText.split('').forEach(character => {
+                    const span = document.createElement('span');
+                    span.innerText = character;
+                    displayElement.appendChild(span);
+                });
+
+                inputElement.disabled = false;
+                inputElement.focus();
+
+            } catch (error) {
+                displayElement.innerHTML = '<span style="color: #dc3545;">Oops! Connection issue. Press Enter ↵ to try again. 🌐</span>';
+                inputElement.disabled = false;
+                inputElement.focus();
+            }
+        }
+
+        function saveCurrentScreenProgress() {
+            const allSpans = displayElement.querySelectorAll('span');
+            allSpans.forEach(span => {
+                if (span.classList.contains('correct')) totalCorrectLetters++;
+                if (span.classList.contains('incorrect')) totalIncorrectLetters++;
+            });
+        }
+
+        function startNewGame() {
+            popupOverlay.style.display = 'none';
+            
+            clearInterval(timerInterval);
+            timeLeft = 60;
+            timerElement.innerText = timeLeft;
+            gameStarted = false;
+            
+            timerBox.classList.remove('time-warning');
+
+            totalCorrectLetters = 0;
+            totalIncorrectLetters = 0;
+
+            loadNewPhrases();
+        }
+
+        inputElement.addEventListener('input', () => {
+            if (!gameStarted) {
+                gameStarted = true;
+                timerInterval = setInterval(() => {
+                    timeLeft--; 
+                    timerElement.innerText = timeLeft;
+                    
+                    if (timeLeft <= 10) {
+                        timerBox.classList.add('time-warning');
+                    }
+                    
+                    if (timeLeft <= 0) {
+                        endGame();
+                    }
+                }, 1000);
+            }
+
+            const arrayDisplay = displayElement.querySelectorAll('span');
+            const arrayInput = inputElement.value.split('');
+            
+            arrayDisplay.forEach((span, index) => {
+                const character = arrayInput[index];
+                if (character == null) {
+                    span.classList.remove('correct', 'incorrect');
+                } else if (character === span.innerText) {
+                    span.classList.add('correct');
+                    span.classList.remove('incorrect');
+                } else {
+                    span.classList.remove('correct');
+                    span.classList.add('incorrect');
+                }
+            });
+        });
+
+        inputElement.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault(); 
+                
+                if (timeLeft > 0) {
+                    saveCurrentScreenProgress(); 
+                    loadNewPhrases(); 
+                }
+            }
+        });
+
+        function endGame() {
+            clearInterval(timerInterval); 
+            inputElement.disabled = true; 
+            
+            saveCurrentScreenProgress();
+            
+            const totalAttempted = totalCorrectLetters + totalIncorrectLetters;
+            let accuracy = 100; 
+            
+            if (totalAttempted > 0) {
+                accuracy = Math.round((totalCorrectLetters / totalAttempted) * 100);
+            }
+
+            finalAccuracyElement.innerText = accuracy;
+            popupOverlay.style.display = 'flex'; 
+        }
+    </script>
+
+</body>
+</html>
